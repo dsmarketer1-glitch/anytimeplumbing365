@@ -58,7 +58,7 @@ const HubFooter = () => (
 
 // --- Screens ---
 
-const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick }) => {
+const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPrompt, onInstallClick }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -75,6 +75,21 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick }) => {
         <div className="icon-wrapper"><Phone size={24} /></div>
         <span>EMERGENCY CALL</span>
       </motion.button>
+
+      {/* Install App Button (Conditional) */}
+      {installPrompt && (
+        <motion.button
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          whileTap={{ scale: 0.98 }}
+          className="btn-hub secondary"
+          onClick={onInstallClick}
+          style={{ backgroundColor: '#10b981' }} // Green for install
+        >
+          <div className="icon-wrapper"><Download size={24} /></div>
+          <span>INSTALL APP</span>
+        </motion.button>
+      )}
 
       <HubHeader />
 
@@ -256,6 +271,35 @@ const ThankYouScreen = ({ onRestart }) => (
 
 export default function App() {
   const [step, setStep] = useState('hub') // 'hub', 'rating', 'thank-you'
+  const [deferredPrompt, setDeferredPrompt] = useState(null)
+
+  useEffect(() => {
+    const handler = (e) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault()
+      // Stash the event so it can be triggered later.
+      setDeferredPrompt(e)
+      console.log('beforeinstallprompt event fired')
+    }
+
+    window.addEventListener('beforeinstallprompt', handler)
+
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return
+
+    // Show the install prompt
+    deferredPrompt.prompt()
+
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice
+    console.log(`User responded to the install prompt with: ${outcome}`)
+
+    // We've used the prompt, and can't use it again, throw it away
+    setDeferredPrompt(null)
+  }
 
   const handleReviewSubmit = (rating, feedback) => {
     if (rating === 5) {
@@ -277,6 +321,8 @@ export default function App() {
             onReviewClick={() => setStep('rating')}
             onWebsiteClick={() => window.open(WEBSITE_URL, '_blank')}
             onEmergencyClick={() => window.open(EMERGENCY_TEL)}
+            installPrompt={!!deferredPrompt}
+            onInstallClick={handleInstallClick}
           />
         )}
         {step === 'rating' && (
