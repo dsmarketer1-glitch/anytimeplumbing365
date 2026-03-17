@@ -96,11 +96,11 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
       {/* Reviews Section */}
       <section className="hub-section">
         <h2 className="section-title">Leave a Review</h2>
-        <button className="btn-hub primary" onClick={onReviewClick}>
+        <button className="btn-hub primary" onClick={() => onReviewClick('google')}>
           <div className="icon-wrapper"><Globe size={24} /></div>
           <span>Google - Leave Us a Review</span>
         </button>
-        <button className="btn-hub primary" onClick={() => window.open(BBB_LINK, '_blank')}>
+        <button className="btn-hub primary" onClick={() => onReviewClick('bbb')}>
           <div className="icon-wrapper"><ShieldCheck size={24} /></div>
           <span>BBB - Leave Us a Review</span>
         </button>
@@ -174,7 +174,7 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
   )
 }
 
-const RatingScreen = ({ onBack, onSubmit }) => {
+const RatingScreen = ({ onBack, onSubmit, platform }) => {
   const [rating, setRating] = useState(0)
   const [feedback, setFeedback] = useState('')
 
@@ -198,7 +198,7 @@ const RatingScreen = ({ onBack, onSubmit }) => {
       <div style={{ marginTop: '2rem' }}>
         <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>How did we do?</h1>
         <p style={{ color: '#6b7280', marginTop: '0.5rem', fontSize: '1.1rem' }}>
-          Thank you for choosing Anytime Plumbing 365. Please take a moment to rate your experience.
+          Thank you for choosing Anytime Plumbing 365. Please take a moment to rate your experience on {platform === 'google' ? 'Google' : 'BBB'}.
         </p>
       </div>
 
@@ -240,7 +240,7 @@ const RatingScreen = ({ onBack, onSubmit }) => {
           disabled={rating === 0}
           style={{ opacity: rating === 0 ? 0.5 : 1 }}
         >
-          {rating === 5 ? 'Open Google Review' : 'Submit Rating'}
+          {rating === 5 ? (platform === 'google' ? 'Open Google Review' : 'Open BBB Review') : 'Submit Rating'}
         </button>
       </div>
 
@@ -272,6 +272,7 @@ const ThankYouScreen = ({ onRestart }) => (
 export default function App() {
   const [step, setStep] = useState('hub') // 'hub', 'rating', 'thank-you'
   const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [selectedPlatform, setSelectedPlatform] = useState('google') // 'google', 'bbb'
 
   useEffect(() => {
     const handler = (e) => {
@@ -279,7 +280,6 @@ export default function App() {
       e.preventDefault()
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e)
-      console.log('beforeinstallprompt event fired')
     }
 
     window.addEventListener('beforeinstallprompt', handler)
@@ -301,13 +301,22 @@ export default function App() {
     setDeferredPrompt(null)
   }
 
+  const handleReviewClick = (platform) => {
+    setSelectedPlatform(platform)
+    setStep('rating')
+  }
+
   const handleReviewSubmit = (rating, feedback) => {
     if (rating === 5) {
-      window.open(GMB_LINK, '_blank')
+      if (selectedPlatform === 'google') {
+        window.open(GMB_LINK, '_blank')
+      } else {
+        window.open(BBB_LINK, '_blank')
+      }
       setStep('thank-you')
     } else {
       // Here you would typically send the feedback to a backend
-      console.log('Feedback submitted:', { rating, feedback })
+      console.log(`Feedback submitted for ${selectedPlatform}:`, { rating, feedback })
       setStep('thank-you')
     }
   }
@@ -318,7 +327,7 @@ export default function App() {
         {step === 'hub' && (
           <HubScreen
             key="hub"
-            onReviewClick={() => setStep('rating')}
+            onReviewClick={handleReviewClick}
             onWebsiteClick={() => window.open(WEBSITE_URL, '_blank')}
             onEmergencyClick={() => window.open(EMERGENCY_TEL)}
             installPrompt={!!deferredPrompt}
@@ -328,6 +337,7 @@ export default function App() {
         {step === 'rating' && (
           <RatingScreen
             key="rating"
+            platform={selectedPlatform}
             onBack={() => setStep('hub')}
             onSubmit={handleReviewSubmit}
           />
