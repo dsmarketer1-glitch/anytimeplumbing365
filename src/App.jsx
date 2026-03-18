@@ -22,14 +22,22 @@ import {
   Hammer,
   Languages,
   ArrowLeft,
-  ChevronDown
+  ChevronDown,
+  LogIn,
+  LogOut,
+  Mail,
+  Lock
 } from 'lucide-react'
+import { supabase } from './supabaseClient'
 
 // --- Constants ---
 const GMB_LINK = 'https://g.page/r/CcDN70gxRpn4EAE/review';
 const BBB_LINK = 'https://www.bbb.org/us/tx/irving/profile/plumber/anytime-plumbing-365-llc-0875-91347601/leave-a-review';
 const WEBSITE_URL = 'https://www.anytimeplumbing365.com/';
 const EMERGENCY_TEL = 'tel:469-214-4111';
+
+const DOCUSIGN_VIP = 'https://na4.docusign.net/Member/PowerFormSigning.aspx?PowerFormId=16c2d4f2-3140-4678-add6-24438257ec82&env=na4&acct=b33e13d9-7a69-4d92-af62-908423cdddf1&v=2';
+const DOCUSIGN_CONTRACT = 'https://na4.docusign.net/Member/PowerFormSigning.aspx?PowerFormId=d0abd8da-88d5-4b55-91e4-1e9e3748d6df&env=na4&acct=b33e13d9-7a69-4d92-af62-908423cdddf1&v=2';
 
 // --- Global Branding Components ---
 
@@ -58,7 +66,84 @@ const HubFooter = () => (
 
 // --- Screens ---
 
-const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPrompt, onInstallClick }) => {
+const LoginScreen = ({ onBack, onLoginSuccess }) => {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    if (error) {
+      setError(error.message)
+    } else {
+      onLoginSuccess(data.user)
+    }
+    setLoading(false)
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="login-screen"
+    >
+      <button className="back-btn" onClick={onBack}>
+        <ArrowLeft size={20} /> Back
+      </button>
+
+      <HubHeader />
+
+      <div className="login-form">
+        <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'var(--text-dark)' }}>Customer Login</h2>
+
+        {error && <div className="auth-error">{error}</div>}
+
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label><Mail size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Email Address</label>
+            <input
+              type="email"
+              className="login-input"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label><Lock size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Password</label>
+            <input
+              type="password"
+              className="login-input"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="btn-primary-action"
+            style={{ width: '100%', marginTop: '1rem' }}
+            disabled={loading}
+          >
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
+      </div>
+    </motion.div>
+  )
+}
+
+const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPrompt, onInstallClick, user, onContractClick, onLogout }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -66,6 +151,28 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
       exit={{ opacity: 0 }}
       className="hub-container"
     >
+      {/* Top Header Controls */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+        {user ? (
+          <button className="back-btn" onClick={onLogout} style={{ margin: 0, fontSize: '0.8rem' }}>
+            <LogOut size={16} /> Logout
+          </button>
+        ) : (
+          <div />
+        )}
+
+        {installPrompt && (
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            className="btn-hub"
+            onClick={onInstallClick}
+            style={{ backgroundColor: '#10b981', color: 'white', padding: '0.5rem 1rem', width: 'auto', borderRadius: '2rem', fontSize: '0.8rem', boxShadow: 'none' }}
+          >
+            <Download size={16} style={{ marginRight: '0.5rem' }} /> INSTALL
+          </motion.button>
+        )}
+      </div>
+
       {/* Top Emergency */}
       <motion.button
         whileTap={{ scale: 0.98 }}
@@ -75,21 +182,6 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
         <div className="icon-wrapper"><Phone size={24} /></div>
         <span>EMERGENCY CALL</span>
       </motion.button>
-
-      {/* Install App Button (Conditional) */}
-      {installPrompt && (
-        <motion.button
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          whileTap={{ scale: 0.98 }}
-          className="btn-hub secondary"
-          onClick={onInstallClick}
-          style={{ backgroundColor: '#10b981' }} // Green for install
-        >
-          <div className="icon-wrapper"><Download size={24} /></div>
-          <span>INSTALL APP</span>
-        </motion.button>
-      )}
 
       <HubHeader />
 
@@ -126,11 +218,11 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
       {/* Contracts Section */}
       <section className="hub-section">
         <h2 className="section-title">Contracts & Agreements</h2>
-        <button className="btn-hub secondary">
+        <button className="btn-hub secondary" onClick={() => onContractClick('vip')}>
           <div className="icon-wrapper"><FileCheck size={24} /></div>
           <span>Sign VIP Agreement</span>
         </button>
-        <button className="btn-hub secondary">
+        <button className="btn-hub secondary" onClick={() => onContractClick('contract')}>
           <div className="icon-wrapper"><Hammer size={24} /></div>
           <span>Home Improvement Contract</span>
         </button>
@@ -139,17 +231,9 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
       {/* Contact Section */}
       <section className="hub-section">
         <h2 className="section-title">Get In Touch</h2>
-        <button className="btn-hub primary" onClick={() => window.open('mailto:info@anytimeplumbing365.com')}>
+        <button className="btn-hub primary" onClick={() => window.open(EMERGENCY_TEL)}>
           <div className="icon-wrapper"><Phone size={24} /></div>
           <span>Contact Us</span>
-        </button>
-        <button className="btn-hub primary" onClick={() => window.open('https://maps.app.goo.gl/hGzN4d6z2q5y9u7q6', '_blank')}>
-          <div className="icon-wrapper"><MapPin size={24} /></div>
-          <span>Irving Location</span>
-        </button>
-        <button className="btn-hub primary" onClick={() => window.open('https://maps.app.goo.gl/Fk9zZ7m7vU7mZ8Z8Z', '_blank')}>
-          <div className="icon-wrapper"><MapPin size={24} /></div>
-          <span>Garland Location</span>
         </button>
         <button className="btn-hub primary" onClick={onWebsiteClick}>
           <div className="icon-wrapper"><Languages size={24} /></div>
@@ -270,40 +354,70 @@ const ThankYouScreen = ({ onRestart }) => (
 // --- Main App ---
 
 export default function App() {
-  const [step, setStep] = useState('hub') // 'hub', 'rating', 'thank-you'
+  const [step, setStep] = useState('hub') // 'hub', 'rating', 'thank-you', 'login'
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [selectedPlatform, setSelectedPlatform] = useState('google') // 'google', 'bbb'
+  const [user, setUser] = useState(null)
+  const [pendingContract, setPendingContract] = useState(null)
 
   useEffect(() => {
+    // Check current auth session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
     const handler = (e) => {
-      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault()
-      // Stash the event so it can be triggered later.
       setDeferredPrompt(e)
     }
 
     window.addEventListener('beforeinstallprompt', handler)
 
-    return () => window.removeEventListener('beforeinstallprompt', handler)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler)
+      subscription.unsubscribe()
+    }
   }, [])
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return
-
-    // Show the install prompt
     deferredPrompt.prompt()
-
-    // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice
-    console.log(`User responded to the install prompt with: ${outcome}`)
-
-    // We've used the prompt, and can't use it again, throw it away
     setDeferredPrompt(null)
   }
 
   const handleReviewClick = (platform) => {
     setSelectedPlatform(platform)
     setStep('rating')
+  }
+
+  const handleContractClick = (type) => {
+    if (user) {
+      if (type === 'vip') window.open(DOCUSIGN_VIP, '_blank')
+      else window.open(DOCUSIGN_CONTRACT, '_blank')
+    } else {
+      setPendingContract(type)
+      setStep('login')
+    }
+  }
+
+  const handleLoginSuccess = (loggedInUser) => {
+    setUser(loggedInUser)
+    setStep('hub')
+    if (pendingContract) {
+      if (pendingContract === 'vip') window.open(DOCUSIGN_VIP, '_blank')
+      else window.open(DOCUSIGN_CONTRACT, '_blank')
+      setPendingContract(null)
+    }
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
   }
 
   const handleReviewSubmit = (rating, feedback) => {
@@ -315,7 +429,6 @@ export default function App() {
       }
       setStep('thank-you')
     } else {
-      // Here you would typically send the feedback to a backend
       console.log(`Feedback submitted for ${selectedPlatform}:`, { rating, feedback })
       setStep('thank-you')
     }
@@ -327,11 +440,21 @@ export default function App() {
         {step === 'hub' && (
           <HubScreen
             key="hub"
+            user={user}
             onReviewClick={handleReviewClick}
             onWebsiteClick={() => window.open(WEBSITE_URL, '_blank')}
             onEmergencyClick={() => window.open(EMERGENCY_TEL)}
             installPrompt={!!deferredPrompt}
             onInstallClick={handleInstallClick}
+            onContractClick={handleContractClick}
+            onLogout={handleLogout}
+          />
+        )}
+        {step === 'login' && (
+          <LoginScreen
+            key="login"
+            onBack={() => setStep('hub')}
+            onLoginSuccess={handleLoginSuccess}
           />
         )}
         {step === 'rating' && (
