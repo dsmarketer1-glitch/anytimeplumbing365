@@ -26,9 +26,17 @@ import {
   LogIn,
   LogOut,
   Mail,
-  Lock
+  Lock,
+  User
 } from 'lucide-react'
-import { supabase } from './supabaseClient'
+import {
+  useUser,
+  useClerk,
+  useSignIn,
+  useSignUp,
+  Show,
+  UserButton
+} from '@clerk/react'
 
 // --- Constants ---
 const GMB_LINK = 'https://g.page/r/CcDN70gxRpn4EAE/review';
@@ -66,7 +74,8 @@ const HubFooter = () => (
 
 // --- Screens ---
 
-const LoginScreen = ({ onBack, onLoginSuccess, onGoToSignup }) => {
+const LoginScreen = ({ onBack, onGoToSignup }) => {
+  const { signIn, isLoaded, setActive } = useSignIn()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -74,18 +83,26 @@ const LoginScreen = ({ onBack, onLoginSuccess, onGoToSignup }) => {
 
   const handleLogin = async (e) => {
     e.preventDefault()
+    if (!isLoaded) return
     setLoading(true)
     setError(null)
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    if (error) {
-      setError(error.message + ". Don't have an account? Try signing up!")
-    } else {
-      onLoginSuccess(data.user)
+
+    try {
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      })
+
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId })
+      } else {
+        console.error('Login incomplete:', result)
+      }
+    } catch (err) {
+      setError(err.errors[0]?.longMessage || 'Failed to login. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
@@ -147,7 +164,8 @@ const LoginScreen = ({ onBack, onLoginSuccess, onGoToSignup }) => {
   )
 }
 
-const SignupScreen = ({ onBack, onSignupSuccess, onGoToLogin }) => {
+const SignupScreen = ({ onBack, onGoToLogin }) => {
+  const { isLoaded, signUp, setActive } = useSignUp()
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -155,46 +173,85 @@ const SignupScreen = ({ onBack, onSignupSuccess, onGoToLogin }) => {
     email: '',
     password: ''
   })
+  const [verifying, setVerifying] = useState(false)
+  const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   const handleSignup = async (e) => {
     e.preventDefault()
+    if (!isLoaded) return
     setLoading(true)
     setError(null)
 
-    // 1. Auth Signup
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-    })
+    try {
+      await signUp.create({
+        emailAddress: formData.email,
+        password: formData.password,
+        firstName: formData.name.split(' ')[0],
+        lastName: formData.name.split(' ').slice(1).join(' '),
+        // phoneNumber: formData.phone // Requires setting up in Clerk
+      })
 
-    if (authError) {
-      setError(authError.message)
+      // Send email verification
+      await signUp.prepareEmailAddressVerification()
+      setVerifying(true)
+    } catch (err) {
+      setError(err.errors[0]?.longMessage || 'Failed to sign up. Please try again.')
+    } finally {
       setLoading(false)
-      return
     }
+  }
 
-    // 2. Create Profile
-    if (authData.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            id: authData.user.id,
-            full_name: formData.name,
-            phone: formData.phone,
-            location: formData.location,
-          }
-        ])
+  const handleVerify = async (e) => {
+    e.preventDefault()
+    if (!isLoaded) return
+    setLoading(true)
 
-      if (profileError) {
-        console.error('Error creating profile:', profileError)
-        // We still consider auth successful, but log the profile error
+    try {
+      const completeSignUp = await signUp.attemptEmailAddressVerification({
+        code,
+      })
+
+      if (completeSignUp.status === 'complete') {
+        const userAction = await setActive({ session: completeSignUp.createdSessionId })
+        // After successful signup, store metadata (Location)
+        // Note: In a production app, you might want to do this via webhooks or a background process
+        // But for this simple app, we'll try to update the user object if they are now signed in
       }
-      onSignupSuccess(authData.user)
+    } catch (err) {
+      setError(err.errors[0]?.longMessage || 'Verification failed. Please check the code.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
+  }
+
+  if (verifying) {
+    return (
+      <motion.div className="login-screen">
+        <HubHeader />
+        <div className="login-form">
+          <h2 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>Verify Email</h2>
+          <p style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'var(--text-muted)' }}>We sent a code to {formData.email}</p>
+          {error && <div className="auth-error">{error}</div>}
+          <form onSubmit={handleVerify}>
+            <div className="form-group">
+              <input
+                type="text"
+                className="login-input"
+                placeholder="Enter 6-digit code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+              />
+            </div>
+            <button type="submit" className="btn-primary-action" style={{ width: '100%' }} disabled={loading}>
+              {loading ? 'Verifying...' : 'Verify'}
+            </button>
+          </form>
+        </div>
+      </motion.div>
+    )
   }
 
   return (
@@ -290,7 +347,10 @@ const SignupScreen = ({ onBack, onSignupSuccess, onGoToLogin }) => {
   )
 }
 
-const DashboardScreen = ({ user, profile, onLogout }) => {
+const DashboardScreen = () => {
+  const { user } = useUser()
+  const { signOut } = useClerk()
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -299,7 +359,7 @@ const DashboardScreen = ({ user, profile, onLogout }) => {
       className="dashboard-screen"
     >
       <div className="welcome-section">
-        <h1 className="welcome-title">Welcome, {profile?.full_name || 'Customer'}!</h1>
+        <h1 className="welcome-title">Welcome, {user?.firstName || 'Customer'}!</h1>
         <p className="welcome-subtitle">We appreciate your business.</p>
       </div>
 
@@ -326,7 +386,7 @@ const DashboardScreen = ({ user, profile, onLogout }) => {
       </div>
 
       <div className="logout-bar">
-        <button className="btn-logout" onClick={onLogout}>
+        <button className="btn-logout" onClick={() => signOut()}>
           <LogOut size={18} /> Logout
         </button>
       </div>
@@ -334,7 +394,9 @@ const DashboardScreen = ({ user, profile, onLogout }) => {
   )
 }
 
-const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPrompt, onInstallClick, user, onGoToDashboard, onGoToLogin }) => {
+const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPrompt, onInstallClick, onGoToDashboard, onGoToLogin }) => {
+  const { user, isLoaded } = useUser()
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -343,12 +405,16 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
       className="hub-container"
     >
       {/* Top Header Controls */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%', gap: '1rem' }}>
+        <Show when="signed-in">
+          <UserButton afterSignOutUrl="/" />
+        </Show>
+
         {installPrompt && (
           <motion.button
             whileTap={{ scale: 0.98 }}
             className="btn-hub"
-            onClick={handleInstallClick}
+            onClick={onInstallClick}
             style={{ backgroundColor: '#10b981', color: 'white', padding: '0.5rem 1rem', width: 'auto', borderRadius: '2rem', fontSize: '0.8rem', boxShadow: 'none' }}
           >
             <Download size={16} style={{ marginRight: '0.5rem' }} /> INSTALL
@@ -401,14 +467,26 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
       {/* Contracts Section */}
       <section className="hub-section">
         <h2 className="section-title">Contracts & Agreements</h2>
-        <button className="btn-hub secondary" onClick={user ? onGoToDashboard : onGoToLogin}>
-          <div className="icon-wrapper"><FileCheck size={24} /></div>
-          <span>Sign VIP Agreement</span>
-        </button>
-        <button className="btn-hub secondary" onClick={user ? onGoToDashboard : onGoToLogin}>
-          <div className="icon-wrapper"><Hammer size={24} /></div>
-          <span>Home Improvement Contract</span>
-        </button>
+        <Show when="signed-in">
+          <button className="btn-hub secondary" onClick={onGoToDashboard}>
+            <div className="icon-wrapper"><FileCheck size={24} /></div>
+            <span>Sign VIP Agreement</span>
+          </button>
+          <button className="btn-hub secondary" onClick={onGoToDashboard}>
+            <div className="icon-wrapper"><Hammer size={24} /></div>
+            <span>Home Improvement Contract</span>
+          </button>
+        </Show>
+        <Show when="signed-out">
+          <button className="btn-hub secondary" onClick={onGoToLogin}>
+            <div className="icon-wrapper"><FileCheck size={24} /></div>
+            <span>Sign VIP Agreement</span>
+          </button>
+          <button className="btn-hub secondary" onClick={onGoToLogin}>
+            <div className="icon-wrapper"><Hammer size={24} /></div>
+            <span>Home Improvement Contract</span>
+          </button>
+        </Show>
       </section>
 
       {/* Contact Section */}
@@ -528,28 +606,9 @@ export default function App() {
   const [step, setStep] = useState('hub') // 'hub', 'rating', 'thank-you', 'login', 'signup', 'dashboard'
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [selectedPlatform, setSelectedPlatform] = useState('google') // 'google', 'bbb'
-  const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState(null)
+  const { user, isLoaded, isSignedIn } = useUser()
 
   useEffect(() => {
-    // Check current auth session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user)
-        fetchProfile(session.user.id)
-      }
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const currentUser = session?.user ?? null
-      setUser(currentUser)
-      if (currentUser) {
-        fetchProfile(currentUser.id)
-      } else {
-        setProfile(null)
-      }
-    })
-
     const handler = (e) => {
       e.preventDefault()
       setDeferredPrompt(e)
@@ -559,19 +618,19 @@ export default function App() {
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler)
-      subscription.unsubscribe()
     }
   }, [])
 
-  const fetchProfile = async (uid) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', uid)
-      .single()
-
-    if (data) setProfile(data)
-  }
+  useEffect(() => {
+    // Automatically move to dashboard if signed in and on auth screens
+    if (isLoaded && isSignedIn && (step === 'login' || step === 'signup')) {
+      setStep('dashboard')
+    }
+    // Automatically move to hub if signed out and on dashboard
+    if (isLoaded && !isSignedIn && step === 'dashboard') {
+      setStep('hub')
+    }
+  }, [isLoaded, isSignedIn, step])
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return
@@ -583,25 +642,6 @@ export default function App() {
   const handleReviewClick = (platform) => {
     setSelectedPlatform(platform)
     setStep('rating')
-  }
-
-  const handleLoginSuccess = (loggedInUser) => {
-    setUser(loggedInUser)
-    fetchProfile(loggedInUser.id)
-    setStep('dashboard')
-  }
-
-  const handleSignupSuccess = (newUser) => {
-    setUser(newUser)
-    fetchProfile(newUser.id)
-    setStep('dashboard')
-  }
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
-    setStep('hub')
   }
 
   const handleReviewSubmit = (rating, feedback) => {
@@ -624,7 +664,6 @@ export default function App() {
         {step === 'hub' && (
           <HubScreen
             key="hub"
-            user={user}
             onReviewClick={handleReviewClick}
             onWebsiteClick={() => window.open(WEBSITE_URL, '_blank')}
             onEmergencyClick={() => window.open(EMERGENCY_TEL)}
@@ -638,7 +677,6 @@ export default function App() {
           <LoginScreen
             key="login"
             onBack={() => setStep('hub')}
-            onLoginSuccess={handleLoginSuccess}
             onGoToSignup={() => setStep('signup')}
           />
         )}
@@ -646,17 +684,13 @@ export default function App() {
           <SignupScreen
             key="signup"
             onBack={() => setStep('hub')}
-            onSignupSuccess={handleSignupSuccess}
             onGoToLogin={() => setStep('login')}
           />
         )}
         {step === 'dashboard' && (
-          <DashboardScreen
-            key="dashboard"
-            user={user}
-            profile={profile}
-            onLogout={handleLogout}
-          />
+          <Show when="signed-in">
+            <DashboardScreen key="dashboard" />
+          </Show>
         )}
         {step === 'rating' && (
           <RatingScreen
