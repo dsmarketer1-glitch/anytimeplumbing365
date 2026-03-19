@@ -34,9 +34,18 @@ import {
   useClerk,
   useSignIn,
   useSignUp,
-  Show,
   UserButton
 } from '@clerk/react'
+
+// --- Custom Components ---
+
+const Show = ({ when, children, fallback = null }) => {
+  const { isLoaded, isSignedIn } = useUser()
+  if (!isLoaded) return null
+  if (when === 'signed-in') return isSignedIn ? children : fallback
+  if (when === 'signed-out') return !isSignedIn ? children : fallback
+  return null
+}
 
 // --- Constants ---
 const GMB_LINK = 'https://g.page/r/CcDN70gxRpn4EAE/review';
