@@ -66,7 +66,7 @@ const HubFooter = () => (
 
 // --- Screens ---
 
-const LoginScreen = ({ onBack, onLoginSuccess }) => {
+const LoginScreen = ({ onBack, onLoginSuccess, onGoToSignup }) => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -81,7 +81,7 @@ const LoginScreen = ({ onBack, onLoginSuccess }) => {
       password,
     })
     if (error) {
-      setError(error.message)
+      setError(error.message + ". Don't have an account? Try signing up!")
     } else {
       onLoginSuccess(data.user)
     }
@@ -138,12 +138,203 @@ const LoginScreen = ({ onBack, onLoginSuccess }) => {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+
+        <div className="signup-link">
+          Don't have an account? <button onClick={onGoToSignup}>Sign Up</button>
+        </div>
       </div>
     </motion.div>
   )
 }
 
-const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPrompt, onInstallClick, user, onContractClick, onLogout }) => {
+const SignupScreen = ({ onBack, onSignupSuccess, onGoToLogin }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    location: '',
+    email: '',
+    password: ''
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const handleSignup = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    // 1. Auth Signup
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+    })
+
+    if (authError) {
+      setError(authError.message)
+      setLoading(false)
+      return
+    }
+
+    // 2. Create Profile
+    if (authData.user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            id: authData.user.id,
+            full_name: formData.name,
+            phone: formData.phone,
+            location: formData.location,
+          }
+        ])
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError)
+        // We still consider auth successful, but log the profile error
+      }
+      onSignupSuccess(authData.user)
+    }
+    setLoading(false)
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="signup-screen"
+    >
+      <button className="back-btn" onClick={onBack}>
+        <ArrowLeft size={20} /> Back
+      </button>
+
+      <HubHeader />
+
+      <div className="login-form">
+        <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'var(--text-dark)' }}>Create Account</h2>
+
+        {error && <div className="auth-error">{error}</div>}
+
+        <form onSubmit={handleSignup}>
+          <div className="form-group">
+            <label>Full Name</label>
+            <input
+              type="text"
+              className="login-input"
+              placeholder="John Doe"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Phone Number</label>
+            <input
+              type="tel"
+              className="login-input"
+              placeholder="469-xxx-xxxx"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Location</label>
+            <input
+              type="text"
+              className="login-input"
+              placeholder="City, State"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Email Address</label>
+            <input
+              type="email"
+              className="login-input"
+              placeholder="email@example.com"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              className="login-input"
+              placeholder="Min 6 characters"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              required
+              minLength={6}
+            />
+          </div>
+          <button
+            type="submit"
+            className="btn-primary-action"
+            style={{ width: '100%', marginTop: '1rem' }}
+            disabled={loading}
+          >
+            {loading ? 'Creating Account...' : 'Sign Up'}
+          </button>
+        </form>
+
+        <div className="signup-link">
+          Already have an account? <button onClick={onGoToLogin}>Login</button>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+const DashboardScreen = ({ user, profile, onLogout }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="dashboard-screen"
+    >
+      <div className="welcome-section">
+        <h1 className="welcome-title">Welcome, {profile?.full_name || 'Customer'}!</h1>
+        <p className="welcome-subtitle">We appreciate your business.</p>
+      </div>
+
+      <div className="dashboard-grid">
+        <h2 className="section-title">Your Documents</h2>
+
+        <a href={DOCUSIGN_VIP} target="_blank" rel="noreferrer" className="dashboard-card">
+          <div className="card-icon"><FileCheck size={28} /></div>
+          <div className="card-content">
+            <h3>VIP Membership Agreement</h3>
+            <p>Review and sign your VIP maintenance plan.</p>
+          </div>
+          <ChevronRight size={20} color="#d1d5db" style={{ marginLeft: 'auto' }} />
+        </a>
+
+        <a href={DOCUSIGN_CONTRACT} target="_blank" rel="noreferrer" className="dashboard-card">
+          <div className="card-icon"><Hammer size={28} /></div>
+          <div className="card-content">
+            <h3>Home Improvement Contract</h3>
+            <p>Official contract for your plumbing project.</p>
+          </div>
+          <ChevronRight size={20} color="#d1d5db" style={{ marginLeft: 'auto' }} />
+        </a>
+      </div>
+
+      <div className="logout-bar">
+        <button className="btn-logout" onClick={onLogout}>
+          <LogOut size={18} /> Logout
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
+const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPrompt, onInstallClick, user, onGoToDashboard, onGoToLogin }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -152,20 +343,12 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
       className="hub-container"
     >
       {/* Top Header Controls */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-        {user ? (
-          <button className="back-btn" onClick={onLogout} style={{ margin: 0, fontSize: '0.8rem' }}>
-            <LogOut size={16} /> Logout
-          </button>
-        ) : (
-          <div />
-        )}
-
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
         {installPrompt && (
           <motion.button
             whileTap={{ scale: 0.98 }}
             className="btn-hub"
-            onClick={onInstallClick}
+            onClick={handleInstallClick}
             style={{ backgroundColor: '#10b981', color: 'white', padding: '0.5rem 1rem', width: 'auto', borderRadius: '2rem', fontSize: '0.8rem', boxShadow: 'none' }}
           >
             <Download size={16} style={{ marginRight: '0.5rem' }} /> INSTALL
@@ -218,11 +401,11 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
       {/* Contracts Section */}
       <section className="hub-section">
         <h2 className="section-title">Contracts & Agreements</h2>
-        <button className="btn-hub secondary" onClick={() => onContractClick('vip')}>
+        <button className="btn-hub secondary" onClick={user ? onGoToDashboard : onGoToLogin}>
           <div className="icon-wrapper"><FileCheck size={24} /></div>
           <span>Sign VIP Agreement</span>
         </button>
-        <button className="btn-hub secondary" onClick={() => onContractClick('contract')}>
+        <button className="btn-hub secondary" onClick={user ? onGoToDashboard : onGoToLogin}>
           <div className="icon-wrapper"><Hammer size={24} /></div>
           <span>Home Improvement Contract</span>
         </button>
@@ -239,18 +422,6 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
           <div className="icon-wrapper"><Languages size={24} /></div>
           <span>Our Website</span>
         </button>
-      </section>
-
-      {/* Bottom Emergency */}
-      <section style={{ marginTop: '1rem' }}>
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          className="btn-hub primary"
-          onClick={onEmergencyClick}
-        >
-          <div className="icon-wrapper"><Phone size={24} /></div>
-          <span>EMERGENCY CALL</span>
-        </motion.button>
       </section>
 
       <HubFooter />
@@ -272,7 +443,7 @@ const RatingScreen = ({ onBack, onSubmit, platform }) => {
       className="rating-screen"
     >
       <div style={{ alignSelf: 'flex-start' }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', padding: '0.5rem', cursor: 'pointer' }}>
+        <button onClick={onBack} className="back-btn" style={{ margin: 0 }}>
           <ArrowLeft size={24} />
         </button>
       </div>
@@ -354,20 +525,29 @@ const ThankYouScreen = ({ onRestart }) => (
 // --- Main App ---
 
 export default function App() {
-  const [step, setStep] = useState('hub') // 'hub', 'rating', 'thank-you', 'login'
+  const [step, setStep] = useState('hub') // 'hub', 'rating', 'thank-you', 'login', 'signup', 'dashboard'
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [selectedPlatform, setSelectedPlatform] = useState('google') // 'google', 'bbb'
   const [user, setUser] = useState(null)
-  const [pendingContract, setPendingContract] = useState(null)
+  const [profile, setProfile] = useState(null)
 
   useEffect(() => {
     // Check current auth session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
+      if (session?.user) {
+        setUser(session.user)
+        fetchProfile(session.user.id)
+      }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
+      if (currentUser) {
+        fetchProfile(currentUser.id)
+      } else {
+        setProfile(null)
+      }
     })
 
     const handler = (e) => {
@@ -383,6 +563,16 @@ export default function App() {
     }
   }, [])
 
+  const fetchProfile = async (uid) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', uid)
+      .single()
+
+    if (data) setProfile(data)
+  }
+
   const handleInstallClick = async () => {
     if (!deferredPrompt) return
     deferredPrompt.prompt()
@@ -395,29 +585,23 @@ export default function App() {
     setStep('rating')
   }
 
-  const handleContractClick = (type) => {
-    if (user) {
-      if (type === 'vip') window.open(DOCUSIGN_VIP, '_blank')
-      else window.open(DOCUSIGN_CONTRACT, '_blank')
-    } else {
-      setPendingContract(type)
-      setStep('login')
-    }
-  }
-
   const handleLoginSuccess = (loggedInUser) => {
     setUser(loggedInUser)
-    setStep('hub')
-    if (pendingContract) {
-      if (pendingContract === 'vip') window.open(DOCUSIGN_VIP, '_blank')
-      else window.open(DOCUSIGN_CONTRACT, '_blank')
-      setPendingContract(null)
-    }
+    fetchProfile(loggedInUser.id)
+    setStep('dashboard')
+  }
+
+  const handleSignupSuccess = (newUser) => {
+    setUser(newUser)
+    fetchProfile(newUser.id)
+    setStep('dashboard')
   }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setUser(null)
+    setProfile(null)
+    setStep('hub')
   }
 
   const handleReviewSubmit = (rating, feedback) => {
@@ -446,8 +630,8 @@ export default function App() {
             onEmergencyClick={() => window.open(EMERGENCY_TEL)}
             installPrompt={!!deferredPrompt}
             onInstallClick={handleInstallClick}
-            onContractClick={handleContractClick}
-            onLogout={handleLogout}
+            onGoToDashboard={() => setStep('dashboard')}
+            onGoToLogin={() => setStep('login')}
           />
         )}
         {step === 'login' && (
@@ -455,6 +639,23 @@ export default function App() {
             key="login"
             onBack={() => setStep('hub')}
             onLoginSuccess={handleLoginSuccess}
+            onGoToSignup={() => setStep('signup')}
+          />
+        )}
+        {step === 'signup' && (
+          <SignupScreen
+            key="signup"
+            onBack={() => setStep('hub')}
+            onSignupSuccess={handleSignupSuccess}
+            onGoToLogin={() => setStep('login')}
+          />
+        )}
+        {step === 'dashboard' && (
+          <DashboardScreen
+            key="dashboard"
+            user={user}
+            profile={profile}
+            onLogout={handleLogout}
           />
         )}
         {step === 'rating' && (
