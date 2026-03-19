@@ -32,8 +32,6 @@ import {
 import {
   useUser,
   useClerk,
-  useSignIn,
-  useSignUp,
   UserButton
 } from '@clerk/react'
 
@@ -84,7 +82,7 @@ const HubFooter = () => (
 // --- Screens ---
 
 const LoginScreen = ({ onBack, onGoToSignup }) => {
-  const { signIn, isLoaded, setActive } = useSignIn()
+  const clerk = useClerk()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -92,23 +90,23 @@ const LoginScreen = ({ onBack, onGoToSignup }) => {
 
   const handleLogin = async (e) => {
     e.preventDefault()
-    if (!isLoaded) return
+    if (!clerk.loaded) return
     setLoading(true)
     setError(null)
 
     try {
-      const result = await signIn.create({
+      const result = await clerk.client.signIn.create({
         identifier: email,
         password,
       })
 
       if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
+        await clerk.setActive({ session: result.createdSessionId })
       } else {
-        console.error('Login incomplete:', result)
+        console.warn('Login incomplete status:', result.status)
       }
     } catch (err) {
-      setError(err.errors[0]?.longMessage || 'Failed to login. Please try again.')
+      setError(err.errors?.[0]?.longMessage || err.message || 'Failed to login.')
     } finally {
       setLoading(false)
     }
@@ -174,7 +172,7 @@ const LoginScreen = ({ onBack, onGoToSignup }) => {
 }
 
 const SignupScreen = ({ onBack, onGoToLogin }) => {
-  const { isLoaded, signUp, setActive } = useSignUp()
+  const clerk = useClerk()
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -189,24 +187,22 @@ const SignupScreen = ({ onBack, onGoToLogin }) => {
 
   const handleSignup = async (e) => {
     e.preventDefault()
-    if (!isLoaded) return
+    if (!clerk.loaded) return
     setLoading(true)
     setError(null)
 
     try {
-      await signUp.create({
+      await clerk.client.signUp.create({
         emailAddress: formData.email,
         password: formData.password,
         firstName: formData.name.split(' ')[0],
         lastName: formData.name.split(' ').slice(1).join(' '),
-        // phoneNumber: formData.phone // Requires setting up in Clerk
       })
 
-      // Send email verification
-      await signUp.prepareEmailAddressVerification()
+      await clerk.client.signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
       setVerifying(true)
     } catch (err) {
-      setError(err.errors[0]?.longMessage || 'Failed to sign up. Please try again.')
+      setError(err.errors?.[0]?.longMessage || err.message || 'Failed to sign up.')
     } finally {
       setLoading(false)
     }
@@ -214,22 +210,19 @@ const SignupScreen = ({ onBack, onGoToLogin }) => {
 
   const handleVerify = async (e) => {
     e.preventDefault()
-    if (!isLoaded) return
+    if (!clerk.loaded) return
     setLoading(true)
 
     try {
-      const completeSignUp = await signUp.attemptEmailAddressVerification({
+      const completeSignUp = await clerk.client.signUp.attemptEmailAddressVerification({
         code,
       })
 
       if (completeSignUp.status === 'complete') {
-        const userAction = await setActive({ session: completeSignUp.createdSessionId })
-        // After successful signup, store metadata (Location)
-        // Note: In a production app, you might want to do this via webhooks or a background process
-        // But for this simple app, we'll try to update the user object if they are now signed in
+        await clerk.setActive({ session: completeSignUp.createdSessionId })
       }
     } catch (err) {
-      setError(err.errors[0]?.longMessage || 'Verification failed. Please check the code.')
+      setError(err.errors?.[0]?.longMessage || err.message || 'Verification failed.')
     } finally {
       setLoading(false)
     }
