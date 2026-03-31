@@ -46,7 +46,7 @@ const Show = ({ when, children, fallback = null }) => {
 }
 
 // --- Constants ---
-const GMB_LINK = 'https://g.page/r/CcDN70gxRpn4EAE/review';
+const GMB_LINK = 'https://g.page/r/CQtQxiIfYxvoEAE/review';
 const BBB_LINK = 'https://www.bbb.org/us/tx/irving/profile/plumber/anytime-plumbing-365-llc-0875-91347601/leave-a-review';
 const WEBSITE_URL = 'https://www.anytimeplumbing365.com/';
 const EMERGENCY_TEL = 'tel:469-214-4111';
@@ -466,30 +466,6 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
         </button>
       </section>
 
-      {/* Contracts Section */}
-      <section className="hub-section">
-        <h2 className="section-title">Contracts & Agreements</h2>
-        <Show when="signed-in">
-          <button className="btn-hub secondary" onClick={onGoToDashboard}>
-            <div className="icon-wrapper"><FileCheck size={24} /></div>
-            <span>Sign VIP Agreement</span>
-          </button>
-          <button className="btn-hub secondary" onClick={onGoToDashboard}>
-            <div className="icon-wrapper"><Hammer size={24} /></div>
-            <span>Home Improvement Contract</span>
-          </button>
-        </Show>
-        <Show when="signed-out">
-          <button className="btn-hub secondary" onClick={onGoToLogin}>
-            <div className="icon-wrapper"><FileCheck size={24} /></div>
-            <span>Sign VIP Agreement</span>
-          </button>
-          <button className="btn-hub secondary" onClick={onGoToLogin}>
-            <div className="icon-wrapper"><Hammer size={24} /></div>
-            <span>Home Improvement Contract</span>
-          </button>
-        </Show>
-      </section>
 
       {/* Contact Section */}
       <section className="hub-section">
@@ -513,7 +489,12 @@ const RatingScreen = ({ onBack, onSubmit, platform }) => {
   const [rating, setRating] = useState(0)
   const [feedback, setFeedback] = useState('')
 
-  const handleRating = (val) => setRating(val)
+  const handleRating = (val) => {
+    setRating(val)
+    if (val === 5) {
+      onSubmit(5, '')
+    }
+  }
 
   return (
     <motion.div
