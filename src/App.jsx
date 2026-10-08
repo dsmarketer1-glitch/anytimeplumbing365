@@ -20,14 +20,14 @@ import {
   MapPin,
   FileCheck,
   Hammer,
-  Languages,
   ArrowLeft,
   ChevronDown,
   LogIn,
   LogOut,
   Mail,
   Lock,
-  User
+  User,
+  Users
 } from 'lucide-react'
 import {
   useUser,
@@ -50,6 +50,8 @@ const GMB_LINK = 'https://g.page/r/CQtQxiIfYxvoEAE/review';
 const BBB_LINK = 'https://www.bbb.org/us/tx/irving/profile/plumber/anytime-plumbing-365-llc-0875-91347601/leave-a-review';
 const WEBSITE_URL = 'https://www.anytimeplumbing365.com/';
 const EMERGENCY_TEL = 'tel:469-214-4111';
+const FACEBOOK_URL = 'https://www.facebook.com/anytimeplumbing365';
+const FACEBOOK_REVIEW_LINK = 'https://www.facebook.com/anytimeplumbing365/reviews';
 
 const DOCUSIGN_VIP = 'https://na4.docusign.net/Member/PowerFormSigning.aspx?PowerFormId=16c2d4f2-3140-4678-add6-24438257ec82&env=na4&acct=b33e13d9-7a69-4d92-af62-908423cdddf1&v=2';
 const DOCUSIGN_CONTRACT = 'https://na4.docusign.net/Member/PowerFormSigning.aspx?PowerFormId=d0abd8da-88d5-4b55-91e4-1e9e3748d6df&env=na4&acct=b33e13d9-7a69-4d92-af62-908423cdddf1&v=2';
@@ -77,6 +79,24 @@ const HubFooter = () => (
       <div className="tag"><Settings size={14} /> 24/7 Availability</div>
     </div>
   </footer>
+)
+
+const HubSection = ({ icon: Icon, title, children }) => (
+  <section className="hub-section">
+    <div className="hub-section-header">
+      <div className="hub-section-badge"><Icon size={26} /></div>
+      <h2 className="hub-section-title">{title}</h2>
+    </div>
+    {children}
+  </section>
+)
+
+const HubButton = ({ icon: Icon, label, onClick }) => (
+  <motion.button whileTap={{ scale: 0.98 }} className="btn-hub primary" onClick={onClick}>
+    <div className="icon-wrapper"><Icon size={26} /></div>
+    <span>{label}</span>
+    <ChevronRight size={22} className="btn-chevron" />
+  </motion.button>
 )
 
 // --- Screens ---
@@ -437,48 +457,24 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
       <HubHeader />
 
       {/* Reviews Section */}
-      <section className="hub-section">
-        <h2 className="section-title">Leave a Review</h2>
-        <button className="btn-hub primary" onClick={() => onReviewClick('google')}>
-          <div className="icon-wrapper"><Globe size={24} /></div>
-          <span>Google - Leave Us a Review</span>
-        </button>
-        <button className="btn-hub primary" onClick={() => onReviewClick('bbb')}>
-          <div className="icon-wrapper"><ShieldCheck size={24} /></div>
-          <span>BBB - Leave Us a Review</span>
-        </button>
-      </section>
+      <HubSection icon={Star} title="Leave a Review">
+        <HubButton icon={Globe} label="Google - Leave Us a Review" onClick={() => onReviewClick('google')} />
+        <HubButton icon={ShieldCheck} label="BBB - Leave Us a Review" onClick={() => onReviewClick('bbb')} />
+        <HubButton icon={Facebook} label="Facebook - Leave Us a Review" onClick={() => window.open(FACEBOOK_REVIEW_LINK, '_blank')} />
+      </HubSection>
 
       {/* Social Media Section */}
-      <section className="hub-section">
-        <h2 className="section-title">Follow Us</h2>
-        <button className="btn-hub primary" onClick={() => window.open('https://www.facebook.com/anytimeplumbing365', '_blank')}>
-          <div className="icon-wrapper"><Facebook size={24} /></div>
-          <span>Facebook - Follow, Like & Review</span>
-        </button>
-        <button className="btn-hub primary" onClick={() => window.open('https://www.instagram.com/anytimeplumbing365', '_blank')}>
-          <div className="icon-wrapper"><Instagram size={24} /></div>
-          <span>Instagram - Follow Us</span>
-        </button>
-        <button className="btn-hub primary" onClick={() => window.open('https://www.youtube.com/@AnyTimePlumbingDrainCleaning', '_blank')}>
-          <div className="icon-wrapper"><Youtube size={24} /></div>
-          <span>YouTube - Subscribe to our channel</span>
-        </button>
-      </section>
-
+      <HubSection icon={Users} title="Follow Us">
+        <HubButton icon={Facebook} label="Facebook - Follow, Like & Review" onClick={() => window.open(FACEBOOK_URL, '_blank')} />
+        <HubButton icon={Instagram} label="Instagram - Follow Us" onClick={() => window.open('https://www.instagram.com/anytimeplumbing365', '_blank')} />
+        <HubButton icon={Youtube} label="YouTube - Subscribe to our channel" onClick={() => window.open('https://www.youtube.com/@AnyTimePlumbingDrainCleaning', '_blank')} />
+      </HubSection>
 
       {/* Contact Section */}
-      <section className="hub-section">
-        <h2 className="section-title">Get In Touch</h2>
-        <button className="btn-hub primary" onClick={() => window.open(EMERGENCY_TEL)}>
-          <div className="icon-wrapper"><Phone size={24} /></div>
-          <span>Contact Us</span>
-        </button>
-        <button className="btn-hub primary" onClick={onWebsiteClick}>
-          <div className="icon-wrapper"><Languages size={24} /></div>
-          <span>Our Website</span>
-        </button>
-      </section>
+      <HubSection icon={Phone} title="Get in Touch">
+        <HubButton icon={Phone} label="Contact Us" onClick={() => window.open(EMERGENCY_TEL)} />
+        <HubButton icon={ExternalLink} label="Our Website" onClick={onWebsiteClick} />
+      </HubSection>
 
       <HubFooter />
     </motion.div>
