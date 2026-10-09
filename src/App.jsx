@@ -46,8 +46,11 @@ const Show = ({ when, children, fallback = null }) => {
 }
 
 // --- Constants ---
-const GMB_LINK = 'https://g.page/r/CQtQxiIfYxvoEAE/review';
-const BBB_LINK = 'https://www.bbb.org/us/tx/irving/profile/plumber/anytime-plumbing-365-llc-0875-91347601/leave-a-review';
+const REVIEW_PLATFORMS = {
+  'google-garland': { name: 'Google (Garland)', link: 'https://g.page/r/CQtQxiIfYxvoEAE/review' },
+  'google-irving': { name: 'Google (Irving)', link: 'https://g.page/r/CcDN70gxRpn4EAE/review' },
+  bbb: { name: 'BBB', link: 'https://www.bbb.org/us/tx/irving/profile/plumber/anytime-plumbing-365-llc-0875-91347601/leave-a-review' },
+};
 const WEBSITE_URL = 'https://www.anytimeplumbing365.com/';
 const EMERGENCY_TEL = 'tel:469-214-4111';
 const FACEBOOK_URL = 'https://www.facebook.com/anytimeplumbing365';
@@ -458,7 +461,8 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
 
       {/* Reviews Section */}
       <HubSection icon={Star} title="Leave a Review">
-        <HubButton icon={Globe} label="Google - Leave Us a Review" onClick={() => onReviewClick('google')} />
+        <HubButton icon={Globe} label="Google (Garland) - Leave a Review" onClick={() => onReviewClick('google-garland')} />
+        <HubButton icon={Globe} label="Google (Irving) - Leave a Review" onClick={() => onReviewClick('google-irving')} />
         <HubButton icon={ShieldCheck} label="BBB - Leave Us a Review" onClick={() => onReviewClick('bbb')} />
         <HubButton icon={Facebook} label="Facebook - Leave Us a Review" onClick={() => window.open(FACEBOOK_REVIEW_LINK, '_blank')} />
       </HubSection>
@@ -510,7 +514,7 @@ const RatingScreen = ({ onBack, onSubmit, platform }) => {
       <div style={{ marginTop: '2rem' }}>
         <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>How did we do?</h1>
         <p style={{ color: '#6b7280', marginTop: '0.5rem', fontSize: '1.1rem' }}>
-          Thank you for choosing Anytime Plumbing 365. Please take a moment to rate your experience on {platform === 'google' ? 'Google' : 'BBB'}.
+          Thank you for choosing Anytime Plumbing 365. Please take a moment to rate your experience on {REVIEW_PLATFORMS[platform].name}.
         </p>
       </div>
 
@@ -552,7 +556,7 @@ const RatingScreen = ({ onBack, onSubmit, platform }) => {
           disabled={rating === 0}
           style={{ opacity: rating === 0 ? 0.5 : 1 }}
         >
-          {rating === 5 ? (platform === 'google' ? 'Open Google Review' : 'Open BBB Review') : 'Submit Rating'}
+          {rating === 5 ? `Open ${REVIEW_PLATFORMS[platform].name} Review` : 'Submit Rating'}
         </button>
       </div>
 
@@ -584,7 +588,7 @@ const ThankYouScreen = ({ onRestart }) => (
 export default function App() {
   const [step, setStep] = useState('hub') // 'hub', 'rating', 'thank-you', 'login', 'signup', 'dashboard'
   const [deferredPrompt, setDeferredPrompt] = useState(null)
-  const [selectedPlatform, setSelectedPlatform] = useState('google') // 'google', 'bbb'
+  const [selectedPlatform, setSelectedPlatform] = useState('google-garland') // key of REVIEW_PLATFORMS
   const { user, isLoaded, isSignedIn } = useUser()
 
   useEffect(() => {
@@ -625,11 +629,7 @@ export default function App() {
 
   const handleReviewSubmit = (rating, feedback) => {
     if (rating === 5) {
-      if (selectedPlatform === 'google') {
-        window.open(GMB_LINK, '_blank')
-      } else {
-        window.open(BBB_LINK, '_blank')
-      }
+      window.open(REVIEW_PLATFORMS[selectedPlatform].link, '_blank')
       setStep('thank-you')
     } else {
       console.log(`Feedback submitted for ${selectedPlatform}:`, { rating, feedback })
