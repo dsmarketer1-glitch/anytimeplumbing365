@@ -27,7 +27,8 @@ import {
   Mail,
   Lock,
   User,
-  Users
+  Users,
+  CreditCard
 } from 'lucide-react'
 import {
   useUser,
@@ -53,6 +54,7 @@ const REVIEW_PLATFORMS = {
 };
 const WEBSITE_URL = 'https://www.anytimeplumbing365.com/';
 const EMERGENCY_TEL = 'tel:469-214-4111';
+const FINANCING_URL = 'https://www.synchrony.com/mmc/M9238140100';
 const FACEBOOK_URL = 'https://www.facebook.com/anytimeplumbing365';
 const FACEBOOK_REVIEW_LINK = 'https://www.facebook.com/anytimeplumbing365/reviews';
 
@@ -458,6 +460,8 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
       </motion.button>
 
       <HubHeader />
+
+      <HubButton icon={CreditCard} label="Financing" onClick={() => window.open(FINANCING_URL, '_blank')} />
 
       {/* Reviews Section */}
       <HubSection icon={Star} title="Leave a Review">
