@@ -469,10 +469,10 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
 
       {/* Reviews Section */}
       <HubSection icon={Star} title="Leave a Review">
-        <HubButton icon={Globe} label="Google (Garland) - Leave a Review" onClick={() => onReviewClick('google-garland')} />
-        <HubButton icon={Globe} label="Google (Irving) - Leave a Review" onClick={() => onReviewClick('google-irving')} />
-        <HubButton icon={ShieldCheck} label="BBB - Leave Us a Review" onClick={() => onReviewClick('bbb')} />
-        <HubButton icon={Facebook} label="Facebook - Leave Us a Review" onClick={() => window.open(FACEBOOK_REVIEW_LINK, '_blank')} />
+        <HubButton icon={Globe} label="Google (Garland)" onClick={() => onReviewClick('google-garland')} />
+        <HubButton icon={Globe} label="Google (Irving)" onClick={() => onReviewClick('google-irving')} />
+        <HubButton icon={ShieldCheck} label="BBB" onClick={() => onReviewClick('bbb')} />
+        <HubButton icon={Facebook} label="Facebook" onClick={() => window.open(FACEBOOK_REVIEW_LINK, '_blank')} />
       </HubSection>
 
       {/* Social Media Section */}
