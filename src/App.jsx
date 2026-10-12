@@ -28,7 +28,8 @@ import {
   Lock,
   User,
   Users,
-  CreditCard
+  CreditCard,
+  Landmark
 } from 'lucide-react'
 import {
   useUser,
@@ -461,7 +462,10 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
 
       <HubHeader />
 
-      <HubButton icon={CreditCard} label="Financing" onClick={() => window.open(FINANCING_URL, '_blank')} />
+      {/* Financing Section */}
+      <HubSection icon={Landmark} title="Financing">
+        <HubButton icon={CreditCard} label="Synchrony Financing" onClick={() => window.open(FINANCING_URL, '_blank')} />
+      </HubSection>
 
       {/* Reviews Section */}
       <HubSection icon={Star} title="Leave a Review">
