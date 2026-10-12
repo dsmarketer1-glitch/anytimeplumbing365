@@ -477,9 +477,9 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
 
       {/* Social Media Section */}
       <HubSection icon={Users} title="Follow Us">
-        <HubButton icon={Facebook} label="Facebook - Follow, Like & Review" onClick={() => window.open(FACEBOOK_URL, '_blank')} />
-        <HubButton icon={Instagram} label="Instagram - Follow Us" onClick={() => window.open('https://www.instagram.com/anytimeplumbing365', '_blank')} />
-        <HubButton icon={Youtube} label="YouTube - Subscribe to our channel" onClick={() => window.open('https://www.youtube.com/@AnyTimePlumbingDrainCleaning', '_blank')} />
+        <HubButton icon={Facebook} label="Facebook" onClick={() => window.open(FACEBOOK_URL, '_blank')} />
+        <HubButton icon={Instagram} label="Instagram" onClick={() => window.open('https://www.instagram.com/anytimeplumbing365', '_blank')} />
+        <HubButton icon={Youtube} label="YouTube" onClick={() => window.open('https://www.youtube.com/@AnyTimePlumbingDrainCleaning', '_blank')} />
       </HubSection>
 
       {/* Contact Section */}
