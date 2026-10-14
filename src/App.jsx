@@ -29,7 +29,8 @@ import {
   User,
   Users,
   CreditCard,
-  Landmark
+  Landmark,
+  FileText
 } from 'lucide-react'
 import {
   useUser,
@@ -486,6 +487,11 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
       <HubSection icon={Phone} title="Get in Touch">
         <HubButton icon={Phone} label="Contact Us" onClick={() => window.open(EMERGENCY_TEL)} />
         <HubButton icon={ExternalLink} label="Our Website" onClick={onWebsiteClick} />
+      </HubSection>
+
+      {/* Agreements Section */}
+      <HubSection icon={FileText} title="Agreements">
+        <HubButton icon={FileCheck} label="VIP Membership" onClick={() => window.open(DOCUSIGN_VIP, '_blank')} />
       </HubSection>
 
       <HubFooter />
