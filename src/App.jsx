@@ -50,6 +50,7 @@ const Show = ({ when, children, fallback = null }) => {
 
 // --- Constants ---
 const REVIEW_PLATFORMS = {
+  'google-dallas': { name: 'Google (Dallas)', link: 'https://g.page/r/CSRjUaaAJ15EEAI/review' },
   'google-garland': { name: 'Google (Garland)', link: 'https://g.page/r/CQtQxiIfYxvoEAE/review' },
   'google-irving': { name: 'Google (Irving)', link: 'https://g.page/r/CcDN70gxRpn4EAE/review' },
   bbb: { name: 'BBB', link: 'https://www.bbb.org/us/tx/irving/profile/plumber/anytime-plumbing-365-llc-0875-91347601/leave-a-review' },
@@ -470,8 +471,9 @@ const HubScreen = ({ onReviewClick, onWebsiteClick, onEmergencyClick, installPro
 
       {/* Reviews Section */}
       <HubSection icon={Star} title="Leave a Review">
-        <HubButton icon={Globe} label="Google (Garland)" onClick={() => onReviewClick('google-garland')} />
+        <HubButton icon={Globe} label="Google (Dallas)" onClick={() => onReviewClick('google-dallas')} />
         <HubButton icon={Globe} label="Google (Irving)" onClick={() => onReviewClick('google-irving')} />
+        <HubButton icon={Globe} label="Google (Garland)" onClick={() => onReviewClick('google-garland')} />
         <HubButton icon={ShieldCheck} label="BBB" onClick={() => onReviewClick('bbb')} />
         <HubButton icon={Facebook} label="Facebook" onClick={() => window.open(FACEBOOK_REVIEW_LINK, '_blank')} />
       </HubSection>
